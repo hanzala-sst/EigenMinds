@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+
+# Environment variables & Secrets (CRITICAL SECURITY)
+.env
+*.env
+**/.env
+**/.env.*
+!*.env.example
+!**/.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+private_key*
+
+# Hardhat & Smart Contract Artifacts
+contracts/artifacts/
+contracts/cache/
+contracts/typechain/
+contracts/typechain-types/
+
+# Database / Local logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
