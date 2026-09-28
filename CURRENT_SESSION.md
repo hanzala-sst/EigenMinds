@@ -35,3 +35,27 @@ Phase 4F — BridgeKey Buyer Validation & Real UI Settlement (COMPLETE & VERIFIE
 ### Safety & Security Mandates
 * No private keys or secret credentials committed to repository or printed in logs/chat.
 * Recruiter buyer wallet operates via BridgeKey extension (`window.ethereum`).
+
+---
+
+### ACCOUNT HANDOFF TAKEOVER CHECKPOINT — 2026-09-29
+
+* **Current Phase**: Stage C4 — Verified BridgeKey Escrow Fixes & Live Settlement Milestone.
+* **Verified Git Baseline**: Initial commit `98af391` on `https://github.com/hanzala-sst/EigenMinds` (`main` branch).
+* **Smart Contract Address**: `0x50D079035D538C69e65aa6e4F928Cd57cc13AbFA` (Verified live on MST Testnet Chain ID `91562037`).
+* **Verified Live Buyer Escrow Transaction**:
+  * **Network**: MST Testnet (Chain ID `91562037`)
+  * **Recruiter Wallet (Buyer)**: Connected BridgeKey recruiter browser wallet (`0xdA431CfFA06...`)
+  * **Seller Wallet (Seller)**: `0x8fc62396f95b2212CF10E78EC695B8F55872dA16`
+  * **Escrow Amount**: `1.0 MSTC`
+  * **Contract Address**: `0x50D079035D538C69e65aa6e4F928Cd57cc13AbFA`
+  * **Transaction Hash**: `0x1791d4585dcb14b9962eba25083654801851131ced12027ab171877890d800ae`
+  * **Verification**: Observed live in user's BridgeKey Chrome browser session (-1 tMSTC confirmed).
+* **Fix Summary**: Bypassed hanging `ethers.BrowserProvider.getSigner()` by implementing direct EIP-1193 `eth_sendTransaction` via `window.ethereum`, using `ethers.Interface` to encode calldata (`0x2e539133`) and an explicit gas limit (`0x493E0`).
+* **Regression Test Results**:
+  * Smart Contract Suite: 18/18 PASS
+  * Backend Business Logic Suite: 13/13 PASS
+  * Backend Build: 0 errors
+  * Frontend Production Build: 0 errors (`tsc && vite build` passed cleanly)
+
+

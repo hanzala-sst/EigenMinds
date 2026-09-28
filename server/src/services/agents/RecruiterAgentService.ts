@@ -9,7 +9,7 @@ export class RecruiterAgentService {
    * Queries available Screening Agents matching job requirement capabilities.
    */
   public static async findScreeningAgents(job: IJobRequirement): Promise<
-    { agent: IAgent; capabilityMatch: boolean; price: number; walletAddress: string; reason: string }[]
+    (IAgent & { capabilityMatch: boolean; price: number; reason: string })[]
   > {
     // Attempt DB query, fallback to seeded agents if DB empty
     let screeners: IAgent[] = [];
@@ -33,10 +33,9 @@ export class RecruiterAgentService {
         : `General screening capabilities available.`;
 
       return {
-        agent,
+        ...agent,
         capabilityMatch,
         price: agent.pricePerTask,
-        walletAddress: agent.walletAddress,
         reason
       };
     });
@@ -46,7 +45,7 @@ export class RecruiterAgentService {
    * Selects best Screening Agent based on capabilities, price, and rating.
    */
   public static selectScreeningAgent(
-    options: { agent: IAgent; capabilityMatch: boolean; price: number; walletAddress: string; reason: string }[]
+    options: any[]
   ): IAgent | null {
     if (options.length === 0) return null;
 
@@ -55,9 +54,10 @@ export class RecruiterAgentService {
     const pool = matching.length > 0 ? matching : options;
 
     // Sort by rating descending, then price ascending
-    pool.sort((a, b) => b.agent.rating - a.agent.rating || a.price - b.price);
+    pool.sort((a, b) => (b.rating || b.agent?.rating || 0) - (a.rating || a.agent?.rating || 0) || (a.price || a.pricePerTask || 0) - (b.price || b.pricePerTask || 0));
 
-    return pool[0].agent;
+    const best = pool[0];
+    return best.agent || best;
   }
 
   /**

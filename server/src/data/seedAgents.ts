@@ -30,7 +30,7 @@ export const seedAgents: IAgent[] = [
     name: 'Screening Agent Beta (General Engineering)',
     role: 'SCREENER',
     description: 'General engineering screening agent for full-stack and cloud backend roles across Python, Go, and Node.js ecosystems.',
-    walletAddress: '0x3333333333333333333333333333333333333333', // Synthetic public seller address
+    walletAddress: '0x8fc62396f95b2212CF10E78EC695B8F55872dA16', // Team-controlled public seller wallet address for live demo settlement
     capabilities: ['resume_screening', 'broad_skill_matching', 'code_portfolio_analysis'],
     pricePerTask: 1.5, // 1.5 MSTC
     currency: 'MSTC',

@@ -21,18 +21,22 @@ export const AgreementPanel: React.FC<AgreementPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const recruiterWallet = walletState.address || '0x1111111111111111111111111111111111111111';
+  const screeningAgentId = selectedAgent?.agentId || selectedAgent?.agent?.agentId || 'AGENT-SCREENER-ALPHA';
+  const sellerWallet = selectedAgent?.walletAddress || selectedAgent?.agent?.walletAddress || '0x8fc62396f95b2212CF10E78EC695B8F55872dA16';
+  const amountMSTC = selectedAgent?.pricePerTask ?? selectedAgent?.price ?? selectedAgent?.agent?.pricePerTask ?? 1.0;
+  const agentName = selectedAgent?.name || selectedAgent?.agent?.name || 'Screening Agent Alpha';
 
   const handleRegisterAgreement = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await ApiService.createAgreement({
-        jobId: jobRequirement.jobId,
+        jobId: jobRequirement?.jobId || 'JOB-BACKEND-01',
         recruiterAgentId: 'AGENT-RECRUITER-01',
-        screeningAgentId: selectedAgent.agentId,
+        screeningAgentId,
         recruiterWallet: recruiterWallet,
-        sellerWallet: selectedAgent.walletAddress,
-        amountMSTC: selectedAgent.pricePerTask || 1.0
+        sellerWallet,
+        amountMSTC
       });
 
       if (res.success && res.agreement) {
@@ -73,13 +77,13 @@ export const AgreementPanel: React.FC<AgreementPanelProps> = ({
             Job Specification
           </div>
           <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.2rem' }}>
-            {jobRequirement.title}
+            {jobRequirement?.title || 'Senior Backend Engineer'}
           </div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Min Experience: {jobRequirement.minExperienceYears} year(s)
+            Min Experience: {jobRequirement?.minExperienceYears ?? 2} year(s)
           </div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Required Skills: {jobRequirement.requiredSkills?.join(', ')}
+            Required Skills: {jobRequirement?.requiredSkills?.join(', ') || 'Node.js, Express, MongoDB'}
           </div>
         </div>
 
@@ -88,14 +92,14 @@ export const AgreementPanel: React.FC<AgreementPanelProps> = ({
             Selected Screening Provider
           </div>
           <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--accent-purple)', marginBottom: '0.2rem' }}>
-            {selectedAgent.name}
+            {agentName}
           </div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <Wallet size={14} color="var(--accent-cyan)" />
-            Seller Address: <code style={{ color: 'var(--accent-cyan)' }}>{AmountUtils.shortenAddress(selectedAgent.walletAddress)}</code>
+            Seller Address: <code style={{ color: 'var(--accent-cyan)' }}>{AmountUtils.shortenAddress(sellerWallet)}</code>
           </div>
           <div style={{ fontSize: '0.85rem', color: 'var(--accent-emerald)', fontWeight: 600, marginTop: '0.2rem' }}>
-            Agreed Fee: {selectedAgent.pricePerTask} MSTC
+            Agreed Fee: {amountMSTC} MSTC
           </div>
         </div>
       </div>

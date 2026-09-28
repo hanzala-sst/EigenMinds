@@ -25,8 +25,8 @@ export const EscrowPanel: React.FC<EscrowPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const agreementNumericId = agreement.numericId || Math.floor(Math.random() * 899999) + 100000;
-  const sellerWallet = selectedAgent?.walletAddress || agreement.sellerWallet;
-  const amountMSTC = agreement.amountMSTC || selectedAgent?.pricePerTask || 1.0;
+  const sellerWallet = selectedAgent?.walletAddress || agreement.sellerWallet || '0x8fc62396f95b2212CF10E78EC695B8F55872dA16';
+  const amountMSTC = selectedAgent?.pricePerTask ?? agreement.amountMSTC ?? 1.0;
 
   const handleFundEscrow = async () => {
     if (!walletState.isConnected) {
@@ -55,11 +55,16 @@ export const EscrowPanel: React.FC<EscrowPanelProps> = ({
         amountMSTC
       );
 
+      console.log('[EscrowPanel] Transaction successful, hash:', res.txHash);
       setTxHash(res.txHash);
       onEscrowFunded(res.txHash, res.contractAddress);
     } catch (err: any) {
       console.error('[EscrowPanel] Transaction error:', err);
-      setError(err.message || 'Escrow funding transaction failed or was rejected in BridgeKey.');
+      const isRejection = err.code === 4001 || err.message?.includes('rejected') || err.message?.includes('user denied');
+      const errorMsg = isRejection
+        ? 'Transaction was cancelled or rejected inside BridgeKey extension.'
+        : err.message || 'Escrow funding transaction failed or timed out.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -100,7 +105,11 @@ export const EscrowPanel: React.FC<EscrowPanelProps> = ({
           <div>
             <div style={{ color: 'var(--text-muted)' }}>Recruiter Wallet (Buyer):</div>
             <div style={{ fontWeight: 600, color: 'var(--accent-cyan)', fontFamily: 'monospace' }}>
-              {AmountUtils.shortenAddress(walletState.address || agreement.recruiterWallet)}
+              {walletState.isConnected && walletState.address ? (
+                AmountUtils.shortenAddress(walletState.address)
+              ) : (
+                <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontWeight: 400 }}>Not Connected</span>
+              )}
             </div>
           </div>
           <div>

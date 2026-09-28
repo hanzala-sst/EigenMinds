@@ -65,6 +65,11 @@ export default function App() {
       }
     } catch (err: any) {
       console.warn('[App] Wallet connection prompt:', err.message);
+      setWalletState((prev) => ({
+        ...prev,
+        error: err.message || 'Failed to connect BridgeKey wallet.'
+      }));
+      alert(err.message || 'BridgeKey browser wallet extension not detected or connection rejected.');
     }
   };
 

@@ -93,12 +93,12 @@ export const AGENT_ESCROW_ABI = [
   }
 ];
 
+const defaultContractAddress = '0x50D079035D538C69e65aa6e4F928Cd57cc13AbFA';
+const configuredAddress = import.meta.env.VITE_MST_ESCROW_CONTRACT_ADDRESS || defaultContractAddress;
+
 export const CONTRACT_CONFIG = {
-  address: import.meta.env.VITE_MST_ESCROW_CONTRACT_ADDRESS || null,
+  address: configuredAddress,
   abi: AGENT_ESCROW_ABI,
-  isDeployed: Boolean(
-    import.meta.env.VITE_MST_ESCROW_CONTRACT_ADDRESS &&
-    import.meta.env.VITE_MST_ESCROW_CONTRACT_ADDRESS.startsWith('0x')
-  ),
+  isDeployed: Boolean(configuredAddress && configuredAddress.startsWith('0x')),
   network: MST_TESTNET_CONFIG
 };

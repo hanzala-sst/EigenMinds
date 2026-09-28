@@ -52,7 +52,12 @@ export class WalletService {
       const chainId = parseInt(chainIdHex, 16);
 
       const isCorrectNetwork = chainId === MST_TESTNET_CONFIG.chainIdDecimal;
-      const balanceMSTC = await this.getBalance(address);
+      let balanceMSTC = '0.0';
+      try {
+        balanceMSTC = await this.getBalance(address);
+      } catch (balErr) {
+        console.warn('[WalletService] Could not fetch balance:', balErr);
+      }
 
       return {
         address,
@@ -126,8 +131,9 @@ export class WalletService {
   }
 
   /**
-   * Submits createAndFundAgreement transaction to AgentEscrow smart contract on MST Testnet.
-   * Signed natively inside BridgeKey extension.
+   * Submits createAndFundAgreement transaction directly via EIP-1193 eth_sendTransaction.
+   * BYPASSES ethers BrowserProvider.getSigner() which hangs in BridgeKey environment.
+   * Manually encodes ABI calldata for: createAndFundAgreement(uint256, address)
    */
   public static async fundEscrowAgreement(
     agreementNumericId: number,
@@ -142,27 +148,62 @@ export class WalletService {
       throw new Error('MST AgentEscrow smart contract is not yet deployed to MST Testnet.');
     }
 
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
+    const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
 
-    const contract = new ethers.Contract(
-      CONTRACT_CONFIG.address,
-      CONTRACT_CONFIG.abi,
-      signer
-    );
+    let accounts: string[] = await window.ethereum.request({ method: 'eth_accounts' });
+    if (!accounts || accounts.length === 0) {
+      accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    }
+    const fromAccount = accounts[0];
+    console.log('[WalletService] Connected account:', AmountUtils.shortenAddress(fromAccount));
 
-    const valueWei = AmountUtils.parseMSTC(amountMSTC);
+    // --- DIRECT EIP-1193 PATH (bypasses ethers BrowserProvider.getSigner()) ---
+    const iface = new ethers.Interface([
+      'function createAndFundAgreement(uint256 agreementId, address sellerAddress) payable'
+    ]);
+    const calldata = iface.encodeFunctionData('createAndFundAgreement', [
+      BigInt(agreementNumericId),
+      sellerAddress
+    ]);
 
-    console.log(`[WalletService] Submitting createAndFundAgreement to ${CONTRACT_CONFIG.address}...`);
-    const tx = await contract.createAndFundAgreement(agreementNumericId, sellerAddress, {
-      value: valueWei
+    // Convert amountMSTC to wei as hex string
+    const valueWei = AmountUtils.parseMSTC(amountMSTC); // returns bigint
+    const valueHex = '0x' + valueWei.toString(16);
+
+    console.log(`[WalletService] Dispatching eth_sendTransaction to BridgeKey: ${amountMSTC} MSTC to contract ${CONTRACT_CONFIG.address}`);
+
+    const sendPromise = (async () => {
+      const txHash: string = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            from: fromAccount,
+            to: CONTRACT_CONFIG.address,
+            value: valueHex,
+            data: calldata,
+            gas: '0x493E0', // 300000 — explicit safe gas limit
+          }
+        ]
+      });
+
+      if (!txHash || typeof txHash !== 'string') {
+        throw new Error('BridgeKey returned an empty or invalid transaction hash.');
+      }
+
+      console.log(`[WalletService] Transaction submitted! Hash: ${txHash}`);
+      return {
+        txHash,
+        contractAddress: CONTRACT_CONFIG.address
+      };
+    })();
+
+    const timeoutPromise = new Promise<{ txHash: string; contractAddress: string }>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('BridgeKey did not respond within 90 seconds. Check BridgeKey for a pending confirmation popup.'));
+      }, 90000);
     });
 
-    console.log(`[WalletService] Transaction submitted! Hash: ${tx.hash}`);
-    return {
-      txHash: tx.hash,
-      contractAddress: CONTRACT_CONFIG.address
-    };
+    return Promise.race([sendPromise, timeoutPromise]);
   }
 
   /**

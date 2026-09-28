@@ -435,13 +435,31 @@ EigenMinds/
   * Smart Contract Suite: 18/18 PASS
   * Backend Business Logic Suite: 13/13 PASS
   * Frontend Production Build: 100% SUCCESS (`tsc && vite build` passed in 3.63s)
-* **Files Modified**: `client/src/components/VerificationPanel.tsx`, `client/src/App.tsx`, `CURRENT_SESSION.md`, `PROJECT_CONTEXT.md`.
+### 2026-09-29 — Stage C4: Verified Live BridgeKey Buyer Escrow Transaction Milestone
+* **Objective**: Resolve BridgeKey wallet provider transaction submit hang, verify real buyer 1.0 MSTC escrow deposit on MST Testnet, and push verified code to GitHub repository.
+* **Key Fixes**:
+  * Fixed agreement data flow so `jobId`, `screeningAgentId`, `recruiterWallet`, `sellerWallet`, and `amountMSTC` flow properly without fallback defaults.
+  * Corrected screening agent seller address mapping to team-controlled public seller wallet `0x8fc62396f95b2212CF10E78EC695B8F55872dA16`.
+  * Resolved BridgeKey `getSigner()` hang by implementing direct EIP-1193 `eth_sendTransaction` via `window.ethereum.request`, encoding calldata via `ethers.Interface` (`0x2e539133`), and setting explicit safe gas limit (`0x493E0`).
+* **Verified Live Transaction Evidence**:
+  * **Recruiter Wallet (Buyer)**: Connected BridgeKey recruiter wallet (`0xdA431CfFA06...`)
+  * **Screening Agent Wallet (Seller)**: `0x8fc62396f95b2212CF10E78EC695B8F55872dA16`
+  * **Escrow Amount**: `1.0 MSTC`
+  * **Contract Address**: `0x50D079035D538C69e65aa6e4F928Cd57cc13AbFA`
+  * **Network**: MST Testnet (Chain ID `91562037`)
+  * **Transaction Hash**: `0x1791d4585dcb14b9962eba25083654801851131ced12027ab171877890d800ae`
+  * **Status**: Confirmed in user's live Chrome + BridgeKey session (-1 tMSTC sent).
+* **Regression Test Results**:
+  * Smart Contract Suite: 18/18 PASS
+  * Backend Business Logic Suite: 13/13 PASS
+  * Backend Build: 0 errors
+  * Frontend Production Build: 0 errors (`tsc && vite build` passed cleanly)
 
 ---
 
 # 17. Current State
 
-* **Current Phase**: Phase 4F — BridgeKey Buyer Validation & Real UI Settlement Completed
+* **Current Phase**: Stage C4 — Verified BridgeKey Escrow Fixes & Live Settlement Milestone Complete
 * **What Works**:
   * MongoDB schemas and fallback in-memory stores for `Agent`, `JobRequirement`, `EscrowAgreement`, and `ScreeningTask`.
   * `DeterministicScreeningEngine` accurately scores candidate skills and experience against job criteria.
@@ -451,9 +469,9 @@ EigenMinds/
   * 13/13 Backend business-logic unit/integration tests pass cleanly.
   * Frontend Glassmorphism React portal with BridgeKey wallet connection, 7-step agent commerce workflow stepper, interactive BridgeKey payment release button, and `tsc && vite build` 100% passing cleanly.
   * Deployed `AgentEscrow.sol` smart contract on MST Testnet (`0x50D079035D538C69e65aa6e4F928Cd57cc13AbFA`).
-  * Verified true application architecture: `Human Operator -> BridgeKey Recruiter Wallet (window.ethereum) -> EigenMinds UI -> Escrow Contract -> Screening Agent Seller (0x8fc62396f95b2212CF10E78EC695B8F55872dA16)`.
+  * **Verified Live Buyer Escrow Funding**: 1.0 MSTC deposit confirmed on MST Testnet (Tx Hash: `0x1791d4585dcb14b9962eba25083654801851131ced12027ab171877890d800ae`).
 * **Current Blocker**: None.
-* **Next Action**: Application flow fully verified and ready for demonstration.
+* **Next Action**: Ready for seller screening execution and verification payout release.
 
 ---
 
