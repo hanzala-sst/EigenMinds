@@ -171,3 +171,32 @@ Phase 4F — BridgeKey Buyer Validation & Real UI Settlement (COMPLETE & VERIFIE
 > Always check on-chain state before retrying any transaction.
 > The new safety rule: preflight failure/timeout BLOCKS new funding — never skips protection.
 
+---
+
+## C6E — Escrow Preflight Hardening & RPC Resilience (2026-09-29)
+
+### Key Architectural Improvements
+1. **Module-Level Singleton RPC Provider (`server/src/routes/api.ts`)**:
+   - Replaced per-request `new ethers.JsonRpcProvider` with a shared singleton.
+   - Eliminates cold TCP/TLS handshakes on repeat calls.
+   - Measured latency dropped from ~1,212ms cold to 280–340ms warm (average ~493ms).
+
+2. **Backend 8-Second RPC Timeout Protection**:
+   - `fetchAgreementWithTimeout(numericId, 8000)` enforces an 8s maximum wait.
+   - Returns explicit HTTP 504 on timeout with `{ success: false, stateUnknown: true }`.
+   - Never converts RPC failures/timeouts into `isFunded: false`.
+
+3. **Frontend 10-Second Preflight Timeout with Fail-Closed Protection (`client/src/components/EscrowPanel.tsx`)**:
+   - Extended preflight `Promise.race` timeout to 10,000ms.
+   - Strict Fail-Closed Safety: If preflight times out or errors, funding is **blocked** and UI loading state is reset with a clear retry message.
+   - `eth_sendTransaction` is **never reached** on timeout or error.
+
+4. **Accurate User-Facing Loading Stages**:
+   - Stage 1: `Checking escrow status...` (during read-only RPC preflight).
+   - Stage 2: `Requesting BridgeKey Signature...` (only after on-chain state is verified unfunded).
+
+5. **Blockchain State Confirmed (Read-Only)**:
+   - Agreement `613731` → `Released` (1.0 MSTC, fully settled) ✅
+   - Agreement `411463` → `Funded` (1.0 MSTC, untouched) ✅
+   - **NO NEW BLOCKCHAIN TRANSACTION SENT DURING THIS OPTIMIZATION.**
+

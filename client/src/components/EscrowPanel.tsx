@@ -101,7 +101,7 @@ export const EscrowPanel: React.FC<EscrowPanelProps> = ({
       try {
         const preflightPromise = ApiService.getOnChainAgreementStatus(stableNumericId);
         const preflightTimeout = new Promise<any>((_, reject) =>
-          setTimeout(() => reject(new Error('preflight_timeout')), 5000)
+          setTimeout(() => reject(new Error('preflight_timeout')), 10000)
         );
         const preCheck = await Promise.race([preflightPromise, preflightTimeout]);
         const t2 = performance.now();

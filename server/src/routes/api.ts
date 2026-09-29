@@ -17,6 +17,27 @@ const GET_AGREEMENT_ABI = [
 ];
 const ON_CHAIN_STATUSES = ['None', 'Funded', 'Released', 'Refunded'];
 
+// Module-level shared singleton provider and contract instance
+const sharedProvider = new ethers.JsonRpcProvider(CHAIN_RPC);
+const sharedContract = new ethers.Contract(CONTRACT_ADDRESS, GET_AGREEMENT_ABI, sharedProvider);
+const RPC_TIMEOUT_MS = 8000;
+
+async function fetchAgreementWithTimeout(numericId: number, timeoutMs = RPC_TIMEOUT_MS) {
+  const fetchPromise = sharedContract.getAgreement(BigInt(numericId));
+  let timer: NodeJS.Timeout;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('RPC_TIMEOUT')), timeoutMs);
+  });
+  try {
+    const res = await Promise.race([fetchPromise, timeoutPromise]);
+    clearTimeout(timer!);
+    return res as any;
+  } catch (err) {
+    clearTimeout(timer!);
+    throw err;
+  }
+}
+
 router.get('/blockchain/agreement/:numericId', async (req, res) => {
   try {
     const numericId = Number(req.params.numericId);
@@ -24,9 +45,7 @@ router.get('/blockchain/agreement/:numericId', async (req, res) => {
       res.status(400).json({ success: false, message: 'Invalid numericId — must be a positive integer.' });
       return;
     }
-    const provider = new ethers.JsonRpcProvider(CHAIN_RPC);
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, GET_AGREEMENT_ABI, provider);
-    const ag = await contract.getAgreement(BigInt(numericId));
+    const ag = await fetchAgreementWithTimeout(numericId);
     const statusLabel = ON_CHAIN_STATUSES[ag.status] || String(ag.status);
     res.json({
       success: true,
@@ -41,7 +60,19 @@ router.get('/blockchain/agreement/:numericId', async (req, res) => {
       isRefunded: statusLabel === 'Refunded'
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, message: `RPC error: ${err.message}` });
+    if (err.message === 'RPC_TIMEOUT') {
+      res.status(504).json({
+        success: false,
+        stateUnknown: true,
+        message: 'On-chain verification timed out after 8s. State is unknown.'
+      });
+      return;
+    }
+    res.status(500).json({
+      success: false,
+      stateUnknown: true,
+      message: `RPC error: ${err.message}`
+    });
   }
 });
 
@@ -92,10 +123,18 @@ router.post('/agreements/recover', async (req, res) => {
       return;
     }
 
-    // 1. Read on-chain state
-    const provider = new ethers.JsonRpcProvider(CHAIN_RPC);
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, GET_AGREEMENT_ABI, provider);
-    const ag = await contract.getAgreement(BigInt(numId));
+    // 1. Read on-chain state with shared provider & timeout
+    let ag: any;
+    try {
+      ag = await fetchAgreementWithTimeout(numId);
+    } catch (rpcErr: any) {
+      if (rpcErr.message === 'RPC_TIMEOUT') {
+        res.status(504).json({ success: false, message: 'On-chain recovery verification timed out after 8s.' });
+        return;
+      }
+      res.status(500).json({ success: false, message: `On-chain recovery RPC error: ${rpcErr.message}` });
+      return;
+    }
     const statusLabel = ON_CHAIN_STATUSES[ag.status] || String(ag.status);
 
     if (statusLabel === 'None') {
