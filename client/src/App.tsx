@@ -96,12 +96,15 @@ export default function App() {
     setActiveStep(4);
   };
 
-  const handleEscrowFunded = (txHash: string, contractAddress: string) => {
+  const handleEscrowFunded = (txHash: string, contractAddress: string, numericId: number, recoveredAgreement?: any) => {
     setAgreement((prev: any) => ({
       ...prev,
+      // If a full recovered agreement was returned, merge its fields (agreementId, sellerWallet, etc.)
+      ...(recoveredAgreement ? recoveredAgreement : {}),
       status: 'FUNDED',
-      fundingTxHash: txHash,
-      contractAddress: contractAddress
+      fundingTxHash: txHash.startsWith('RESUMED-') ? (prev?.fundingTxHash || null) : txHash,
+      contractAddress: contractAddress,
+      numericId: numericId
     }));
     setActiveStep(5);
   };

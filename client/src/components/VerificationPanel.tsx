@@ -34,8 +34,8 @@ export const VerificationPanel: React.FC<VerificationPanelProps> = ({
     setError(null);
     try {
       const res = await ApiService.verifyScreening(screeningTask.taskId);
-      if (res.success && res.verification) {
-        setVerificationResult(res.verification);
+      if (res.success && (res.verificationResult || res.verification)) {
+        setVerificationResult(res.verificationResult || res.verification);
       } else {
         throw new Error(res.message || 'Verification failed.');
       }

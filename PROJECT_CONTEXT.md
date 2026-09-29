@@ -459,7 +459,7 @@ EigenMinds/
 
 # 17. Current State
 
-* **Current Phase**: Stage C4 — Verified BridgeKey Escrow Fixes & Live Settlement Milestone Complete
+* **Current Phase**: Stage C5 Complete / Handoff Takeover Read-Only Audit Verified
 * **What Works**:
   * MongoDB schemas and fallback in-memory stores for `Agent`, `JobRequirement`, `EscrowAgreement`, and `ScreeningTask`.
   * `DeterministicScreeningEngine` accurately scores candidate skills and experience against job criteria.
@@ -469,9 +469,11 @@ EigenMinds/
   * 13/13 Backend business-logic unit/integration tests pass cleanly.
   * Frontend Glassmorphism React portal with BridgeKey wallet connection, 7-step agent commerce workflow stepper, interactive BridgeKey payment release button, and `tsc && vite build` 100% passing cleanly.
   * Deployed `AgentEscrow.sol` smart contract on MST Testnet (`0x50D079035D538C69e65aa6e4F928Cd57cc13AbFA`).
-  * **Verified Live Buyer Escrow Funding**: 1.0 MSTC deposit confirmed on MST Testnet (Tx Hash: `0x1791d4585dcb14b9962eba25083654801851131ced12027ab171877890d800ae`).
+  * **Verified Live Buyer Escrow Fundings**:
+    - Agreement `613731`: 1.0 MSTC deposit confirmed on MST Testnet (Tx Hash: `0x1791d4585dcb14b9962eba25083654801851131ced12027ab171877890d800ae`, Block `5793206`, Status: `FUNDED`).
+    - Agreement `411463`: 1.0 MSTC deposit confirmed on MST Testnet (Tx Hash: `0x22cbba9e4579132f0652d6cb59733a46e83b5dfff158f3bfcf45651943b4e0c2`, Block `5793629`, Status: `FUNDED`).
 * **Current Blocker**: None.
-* **Next Action**: Ready for seller screening execution and verification payout release.
+* **Next Action**: Ready to proceed with off-chain verification and BridgeKey payout release (Stage C6).
 
 ---
 

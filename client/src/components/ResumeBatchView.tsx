@@ -96,7 +96,7 @@ export const ResumeBatchView: React.FC<ResumeBatchViewProps> = ({ onContinueToSc
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FileUser size={18} color="var(--accent-cyan)" />
-                    <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{resume.candidateName}</span>
+                    <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{resume.name}</span>
                   </div>
                   <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                     {resume.candidateId}

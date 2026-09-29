@@ -83,4 +83,17 @@ export class ApiService {
       body: JSON.stringify({ taskId })
     });
   }
+
+  // Read-only on-chain agreement status check (no wallet required)
+  public static async getOnChainAgreementStatus(numericId: number) {
+    return this.request<any>(`/blockchain/agreement/${numericId}`);
+  }
+
+  // Recover existing funded agreement by on-chain numeric ID → returns canonical off-chain record
+  public static async recoverAgreement(numericId: number) {
+    return this.request<any>('/agreements/recover', {
+      method: 'POST',
+      body: JSON.stringify({ numericId })
+    });
+  }
 }

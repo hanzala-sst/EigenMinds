@@ -148,16 +148,26 @@ export class WalletService {
       throw new Error('MST AgentEscrow smart contract is not yet deployed to MST Testnet.');
     }
 
-    const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+    const _t0 = performance.now();
 
+    const _t1 = performance.now();
+    console.log('[FUND] eth_chainId START');
+    const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+    console.log(`[FUND] eth_chainId END — ${(performance.now() - _t1).toFixed(0)}ms — chainId: ${chainIdHex}`);
+
+    const _t2 = performance.now();
+    console.log('[FUND] eth_accounts START');
     let accounts: string[] = await window.ethereum.request({ method: 'eth_accounts' });
     if (!accounts || accounts.length === 0) {
+      console.log('[FUND] eth_accounts empty — calling eth_requestAccounts');
       accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     }
     const fromAccount = accounts[0];
-    console.log('[WalletService] Connected account:', AmountUtils.shortenAddress(fromAccount));
+    console.log(`[FUND] eth_accounts END — ${(performance.now() - _t2).toFixed(0)}ms — from: ${AmountUtils.shortenAddress(fromAccount)}`);
 
     // --- DIRECT EIP-1193 PATH (bypasses ethers BrowserProvider.getSigner()) ---
+    const _t3 = performance.now();
+    console.log('[FUND] calldata encoding START');
     const iface = new ethers.Interface([
       'function createAndFundAgreement(uint256 agreementId, address sellerAddress) payable'
     ]);
@@ -165,12 +175,12 @@ export class WalletService {
       BigInt(agreementNumericId),
       sellerAddress
     ]);
-
-    // Convert amountMSTC to wei as hex string
-    const valueWei = AmountUtils.parseMSTC(amountMSTC); // returns bigint
+    const valueWei = AmountUtils.parseMSTC(amountMSTC);
     const valueHex = '0x' + valueWei.toString(16);
+    console.log(`[FUND] calldata encoding END — ${(performance.now() - _t3).toFixed(0)}ms`);
 
-    console.log(`[WalletService] Dispatching eth_sendTransaction to BridgeKey: ${amountMSTC} MSTC to contract ${CONTRACT_CONFIG.address}`);
+    console.log(`[FUND] eth_sendTransaction INVOKED — ${(performance.now() - _t0).toFixed(0)}ms since walletService entry — amount: ${amountMSTC} MSTC`);
+    const _t4 = performance.now();
 
     const sendPromise = (async () => {
       const txHash: string = await window.ethereum.request({
@@ -190,7 +200,7 @@ export class WalletService {
         throw new Error('BridgeKey returned an empty or invalid transaction hash.');
       }
 
-      console.log(`[WalletService] Transaction submitted! Hash: ${txHash}`);
+      console.log(`[FUND] eth_sendTransaction RETURNED — ${(performance.now() - _t4).toFixed(0)}ms — txHash: ${txHash}`);
       return {
         txHash,
         contractAddress: CONTRACT_CONFIG.address
@@ -207,20 +217,67 @@ export class WalletService {
   }
 
   /**
-   * Submits payment release request (if recruiter chooses to trigger release directly via BridgeKey).
+   * Submits releasePayment transaction directly via EIP-1193 eth_sendTransaction.
+   * BYPASSES ethers BrowserProvider.getSigner() which hangs in BridgeKey environment.
+   * Encodes calldata for: releasePayment(uint256 agreementId)
+   * From address = connected BridgeKey recruiter account (msg.sender authorization on contract).
    */
   public static async releasePayment(
     agreementNumericId: number
   ): Promise<{ txHash: string }> {
-    if (!CONTRACT_CONFIG.isDeployed || !CONTRACT_CONFIG.address) {
-      throw new Error('Contract not deployed.');
+    if (!this.isProviderAvailable()) {
+      throw new Error('BridgeKey wallet extension not detected.');
     }
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_CONFIG.address, CONTRACT_CONFIG.abi, signer);
 
-    const tx = await contract.releasePayment(agreementNumericId);
-    return { txHash: tx.hash };
+    if (!CONTRACT_CONFIG.isDeployed || !CONTRACT_CONFIG.address) {
+      throw new Error('MST AgentEscrow smart contract is not deployed.');
+    }
+
+    let accounts: string[] = await window.ethereum.request({ method: 'eth_accounts' });
+    if (!accounts || accounts.length === 0) {
+      accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    }
+    const fromAccount = accounts[0];
+    console.log('[WalletService] releasePayment from account:', AmountUtils.shortenAddress(fromAccount));
+    console.log('[WalletService] releasePayment agreementNumericId:', agreementNumericId);
+
+    // --- DIRECT EIP-1193 PATH (bypasses ethers BrowserProvider.getSigner()) ---
+    const iface = new ethers.Interface([
+      'function releasePayment(uint256 agreementId)'
+    ]);
+    const calldata = iface.encodeFunctionData('releasePayment', [BigInt(agreementNumericId)]);
+
+    console.log('[WalletService] Dispatching releasePayment via eth_sendTransaction to BridgeKey...');
+
+    const sendPromise = (async () => {
+      const txHash: string = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            from: fromAccount,
+            to: CONTRACT_CONFIG.address,
+            value: '0x0', // releasePayment is nonpayable — no MSTC sent
+            data: calldata,
+            gas: '0x30D40', // 200000 — safe gas limit for releasePayment
+          }
+        ]
+      });
+
+      if (!txHash || typeof txHash !== 'string') {
+        throw new Error('BridgeKey returned an empty or invalid transaction hash for release.');
+      }
+
+      console.log('[WalletService] releasePayment transaction submitted! Hash:', txHash);
+      return { txHash };
+    })();
+
+    const timeoutPromise = new Promise<{ txHash: string }>((_resolve, reject) => {
+      setTimeout(() => {
+        reject(new Error('BridgeKey did not respond within 90 seconds. Check BridgeKey for a pending release confirmation popup.'));
+      }, 90000);
+    });
+
+    return Promise.race([sendPromise, timeoutPromise]);
   }
 
   /**
